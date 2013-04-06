@@ -45,7 +45,6 @@
 #include "os.h"
 #include "evnt_handler.h"
 #include <msp430.h>
-#include "terminal.h"
 
 #define READ                    3
 #define WRITE                   1
@@ -207,7 +206,7 @@ SpiOpen(gcSpiHandleRx pfRxHandler)
 	sSpiInformation.SPIRxHandler = pfRxHandler;
 	sSpiInformation.usTxPacketLength = 0;
 	sSpiInformation.pTxPacket = NULL;
-	RXPtr = (char *)RX_START_ADD;
+	RXPtr = (unsigned char *)RX_START_ADD;
 	//sSpiInformation.pRxPacket = (unsigned char *)spi_buffer;
 	sSpiInformation.pRxPacket = (unsigned char *)RXPtr;
 	sSpiInformation.usRxPacketLength = 0;

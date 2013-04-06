@@ -5,12 +5,18 @@
  *      Author: Alex
  */
 #include "msp430fr5739.h"
+#include "board.h"
+#include "cc3000.h"
 
 volatile unsigned int ADCResultX = 0;
 volatile unsigned int ADCResultY = 0;
 volatile unsigned int ADCResultZ = 0;
 volatile unsigned int ADCResultT = 0;
-volatile unsigned int MeasureComplete = 0;
+volatile unsigned int measurementComplete = 0;
+
+extern volatile unsigned short DHCPset;
+extern volatile unsigned short startMeasurement;
+extern volatile unsigned short startSmartConfig;
 
 void SystemInit(void) {
 	// Startup clock system in max. DCO setting ~8MHz
@@ -81,6 +87,20 @@ __interrupt void Port_4(void) {
 			DisableSwitches();
 			StartDebounceTimer(); // Reenable switches after debounce
 
+			if (DHCPset) {
+				// start sensor collection
+				if (startMeasurement) {
+					startMeasurement = 0;
+				} else {
+					startMeasurement = 1;
+				}
+			} else {
+				if (startSmartConfig) {
+					startSmartConfig = 0;
+				} else {
+					startSmartConfig = 1;
+				}
+			}
 			break;
 		default:
 			break;
@@ -93,7 +113,6 @@ __interrupt void Timer0_A0_ISR(void) {
 	TA0CTL = 0;
 	EnableSwitches();
 }
-
 
 void turnAllLedOff(void) {
 	// P3.4- P3.7 are set as output, low
@@ -163,7 +182,7 @@ void turnLedOff(int ledNum) {
 
 void TakeADCMeas(void) {
 	while (ADC10CTL1 & BUSY);
-	MeasureComplete = 0;
+	measurementComplete = 0;
 	ADC10CTL0 |= ADC10ENC | ADC10SC;
 }
 
@@ -227,7 +246,7 @@ __interrupt void ADC10_ISR(void) {
 				ADCResultZ = ADC10MEM0;
 			} else if (ADC10MCTL0 & ADC10INCH_4) {
 				ADCResultT = ADC10MEM0;
-				MeasureComplete = 0;
+				measurementComplete = 1;
 			}
             break;
 		default: break;

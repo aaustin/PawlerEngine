@@ -5,14 +5,93 @@
  *      Author: Alex
  */
 
+#include "msp430fr5739.h"
+#include "cc3000.h"
 #include "board.h"
 #include "wlan.h"
 #include "evnt_handler.h"
+#include "spi.h"
+#include "netapp.h"
 
-void CC3000_UsynchCallback(long lEventType, char * data, unsigned char length);
+extern volatile unsigned short smartConfigFinished = 0;
+extern volatile unsigned short CC3000Connected;
+extern volatile unsigned short DHCPset;
+extern volatile unsigned short startSmartConfig = 0;
 
-void initCC3000(void);
-int initDriver(void);
+void CC3000_UsynchCallback(long lEventType, char * data, unsigned char length) {
+    if (lEventType == HCI_EVNT_WLAN_ASYNC_SIMPLE_CONFIG_DONE) {
+    	smartConfigFinished = 1;
+        turnLedOn(8);
+    }
+
+    if (lEventType == HCI_EVNT_WLAN_UNSOL_INIT) {
+        //setCC3000MachineState(CC3000_INIT);
+    }
+
+    if (lEventType == HCI_EVNT_WLAN_UNSOL_CONNECT) {
+    	CC3000Connected = 1;
+    	//setCC3000MachineState(CC3000_ASSOC);
+    	turnLedOn(7);
+    }
+
+    if (lEventType == HCI_EVNT_WLAN_UNSOL_DISCONNECT) {
+    	CC3000Connected = 0;
+    	DHCPset = 0;
+    	//resetCC3000StateMachine();
+    }
+
+    if (lEventType == HCI_EVNT_WLAN_UNSOL_DHCP) {
+       // setCC3000MachineState(CC3000_IP_ALLOC);
+    	DHCPset = 1;
+        turnLedOn(6);
+    }
+}
+
+void initCC3000(void) {
+ 	// init SPI_CS_PORT s
+	// Configure the SPI CS to be on P1.3
+	P1OUT |= BIT3;
+	P1DIR |= BIT3;
+	P1SEL1 &= ~BIT3;
+	P1SEL0 &= ~BIT3;
+
+    // P4.1 - WLAN enable full DS
+	P4OUT &= ~BIT1;
+	P4DIR |= BIT1;
+	P4SEL1 &= ~BIT1;
+	P4SEL0 &= ~BIT1;
+
+    // Configure SPI IRQ line on P2.3
+	P2DIR  &= (~BIT3);
+	P2SEL1 &= ~BIT3;
+	P2SEL0 &= ~BIT3;
+
+	initDriver();
+}
+
+int initDriver(void) {
+   //init all layers
+	init_spi();
+
+	// this is done for debug purpose only
+
+	// WLAN On API Implementation
+	wlan_init(CC3000_UsynchCallback, sendWLFWPatch, sendDriverPatch, sendBootLoaderPatch, ReadWlanInterruptPin, WlanInterruptEnable, WlanInterruptDisable, WriteWlanPin);
+
+	// Trigger a WLAN device
+	wlan_start(0);
+
+
+	// Mask out all non-required events from CC3000
+	wlan_set_event_mask(HCI_EVNT_WLAN_KEEPALIVE|HCI_EVNT_WLAN_ASYNC_PING_REPORT);
+
+	//unsolicicted_events_timer_init();
+
+	// CC3000 has been initialized
+	//setCC3000MachineState(CC3000_INIT);
+
+	return(0);
+}
 void StartSmartConfig(void) {
 	// Reset all the previous configuration
 	wlan_ioctl_set_connection_policy(0, 0, 0);
@@ -32,7 +111,7 @@ void StartSmartConfig(void) {
 
 	// Wait for Smart config finished
     turnLedOn(6);
-	while (ulSmartConfigFinished == 0) {
+	while (ulSmartConfigFinished == 0 && startSmartConfig == 1) {
 		Delay();
 		turnLedOn(6);
 		Delay();
@@ -53,6 +132,8 @@ void StartSmartConfig(void) {
 		// Mask out all non-required events
 		wlan_set_event_mask(HCI_EVNT_WLAN_KEEPALIVE|HCI_EVNT_WLAN_UNSOL_INIT|HCI_EVNT_WLAN_ASYNC_PING_REPORT);
 	}
+
+	startSmartConfig = 0;
 }
 
 char *sendDriverPatch(unsigned long *Length) {
