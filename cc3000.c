@@ -13,10 +13,10 @@
 #include "spi.h"
 #include "netapp.h"
 
-extern volatile unsigned short smartConfigFinished = 0;
+extern volatile unsigned short smartConfigFinished;
 extern volatile unsigned short CC3000Connected;
 extern volatile unsigned short DHCPset;
-extern volatile unsigned short startSmartConfig = 0;
+extern volatile unsigned short startSmartConfig;
 
 void CC3000_UsynchCallback(long lEventType, char * data, unsigned char length) {
     if (lEventType == HCI_EVNT_WLAN_ASYNC_SIMPLE_CONFIG_DONE) {
@@ -25,23 +25,22 @@ void CC3000_UsynchCallback(long lEventType, char * data, unsigned char length) {
     }
 
     if (lEventType == HCI_EVNT_WLAN_UNSOL_INIT) {
-        //setCC3000MachineState(CC3000_INIT);
+    	turnLedOn(8);
     }
 
     if (lEventType == HCI_EVNT_WLAN_UNSOL_CONNECT) {
     	CC3000Connected = 1;
-    	//setCC3000MachineState(CC3000_ASSOC);
     	turnLedOn(7);
     }
 
     if (lEventType == HCI_EVNT_WLAN_UNSOL_DISCONNECT) {
     	CC3000Connected = 0;
     	DHCPset = 0;
-    	//resetCC3000StateMachine();
+    	turnAllLedOff();
+
     }
 
     if (lEventType == HCI_EVNT_WLAN_UNSOL_DHCP) {
-       // setCC3000MachineState(CC3000_IP_ALLOC);
     	DHCPset = 1;
         turnLedOn(6);
     }
@@ -98,7 +97,7 @@ void StartSmartConfig(void) {
 	wlan_ioctl_del_profile(255);
 
 	//Wait until CC3000 is disconnected
-	while (ulCC3000Connected == 1) {
+	while (CC3000Connected == 1) {
 		__delay_cycles(100);
 		hci_unsolicited_event_handler();
 	}
@@ -111,7 +110,7 @@ void StartSmartConfig(void) {
 
 	// Wait for Smart config finished
     turnLedOn(6);
-	while (ulSmartConfigFinished == 0 && startSmartConfig == 1) {
+	while (smartConfigFinished == 0 && startSmartConfig == 1) {
 		Delay();
 		turnLedOn(6);
 		Delay();
@@ -121,7 +120,7 @@ void StartSmartConfig(void) {
 
 	// Configure to connect automatically to the AP retrieved in the
 	// Smart config process
-	if (ulSmartConfigFinished == 1) {
+	if (smartConfigFinished == 1) {
 		wlan_ioctl_set_connection_policy(0, 0, 1);
 
 		// reset the CC3000
