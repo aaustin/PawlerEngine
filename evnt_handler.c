@@ -217,12 +217,19 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 	unsigned char *pucReceivedParams;
 	unsigned short usReceivedEventOpcode = 0;
 	unsigned long retValue32;
-  unsigned char * RecvParams;
-  unsigned char *RetParams;
+    unsigned char * RecvParams;
+    unsigned char *RetParams;
 
+  	unsigned short counter = 0;
 	
 	while (1)
 	{
+		if (tSLInformation.usRxEventOpcode == HCI_CMND_CONNECT) {
+			if (counter == 3)
+				break;
+		}
+
+
 		if (tSLInformation.usEventOrDataReceived != 0)
 		{				
 			pucReceivedData = (tSLInformation.pucReceivedData);
@@ -464,6 +471,12 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 			}
                         
                    
+		}
+
+		if (tSLInformation.usRxEventOpcode == HCI_CMND_CONNECT) {
+			counter++;
+			__delay_cycles(8000000);
+			//__no_operation();
 		}
 	}
 

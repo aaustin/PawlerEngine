@@ -3,7 +3,7 @@
 #include "cc3000.h"
 #include "data_collect.h"
 
-volatile unsigned short smartConfigFinished = 0;
+unsigned short smartConfigFinished = 0;
 volatile unsigned short CC3000Connected = 0;
 volatile unsigned short DHCPset = 0;
 volatile unsigned short startMeasurement = 0;

@@ -17,6 +17,7 @@ volatile unsigned int measurementComplete = 0;
 extern volatile unsigned short DHCPset;
 extern volatile unsigned short startMeasurement;
 extern volatile unsigned short startSmartConfig;
+extern unsigned short smartConfigFinished;
 
 void SystemInit(void) {
 	// Startup clock system in max. DCO setting ~8MHz
@@ -95,10 +96,12 @@ __interrupt void Port_4(void) {
 					startMeasurement = 1;
 				}
 			} else {
-				if (startSmartConfig) {
-					startSmartConfig = 0;
-				} else {
-					startSmartConfig = 1;
+				if (smartConfigFinished == 0) {
+					if (startSmartConfig) {
+						startSmartConfig = 0;
+					} else {
+						startSmartConfig = 1;
+					}
 				}
 			}
 			break;
@@ -183,6 +186,8 @@ void turnLedOff(int ledNum) {
 void TakeADCMeas(void) {
 	while (ADC10CTL1 & BUSY);
 	measurementComplete = 0;
+	ADC10CTL0 &= ~ADC10ENC;
+	ADC10MCTL0 = ADC10INCH_14;
 	ADC10CTL0 |= ADC10ENC | ADC10SC;
 }
 
@@ -307,6 +312,6 @@ void WriteWlanPin(unsigned char val) {
 }
 
 void Delay(void) {
-	__delay_cycles(250000);
+	__delay_cycles(200000);
 	__no_operation();
 }

@@ -13,7 +13,7 @@
 #include "spi.h"
 #include "netapp.h"
 
-extern volatile unsigned short smartConfigFinished;
+extern unsigned short smartConfigFinished;
 extern volatile unsigned short CC3000Connected;
 extern volatile unsigned short DHCPset;
 extern volatile unsigned short startSmartConfig;
@@ -92,6 +92,7 @@ int initDriver(void) {
 	return(0);
 }
 void StartSmartConfig(void) {
+	smartConfigFinished = 0;
 	// Reset all the previous configuration
 	wlan_ioctl_set_connection_policy(0, 0, 0);
 	wlan_ioctl_del_profile(255);
