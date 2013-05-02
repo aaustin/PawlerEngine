@@ -209,7 +209,7 @@ void StartMeasurement(void) {
 
 				reconnectTimer = 0;
 				//connected =  getsockopt(socketRef, SOL_SOCKET, SOCKOPT_NONBLOCK , &optval, (socklen_t*)&optlen);
-				while (reconnectTimer < 10) {
+				while (reconnectTimer < 15) {
 					Delay();
 					Delay();
 					Delay();
